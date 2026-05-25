@@ -1,0 +1,10 @@
+# Model selection per agent role. The pinned model is recorded into every trace
+# as `model_version_pinned_at`. No silent upgrades.
+#
+# Phase 1 monolithic agent uses a single Sonnet. Tiering arrives in Phase 3
+# when specialists give it natural seams.
+
+[monolithic]
+model = "claude-sonnet-4-6"
+model_version_pinned_at = "claude-sonnet-4-6"
+max_tokens = 16000

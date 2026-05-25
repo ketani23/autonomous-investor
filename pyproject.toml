@@ -1,0 +1,59 @@
+[project]
+name = "autonomous-investor"
+version = "0.1.0"
+description = "AI systems substrate for autonomous macro investing. Phase 1: monolithic agent + bitemporal substrate."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # Persistence
+    "psycopg[binary]>=3.2",
+    "pydantic>=2.9",
+    # Config
+    "tomli>=2.0; python_version < '3.11'",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    # Data
+    "yfinance>=0.2.40",
+    "requests>=2.32",
+    "pandas>=2.2",
+    "numpy>=1.26,<2.0",   # vectorbt pin range
+    # Backtest
+    "vectorbt>=0.27",
+    # Agent
+    "claude-agent-sdk>=0.1",
+    # CLI / viewer
+    "click>=8.1",
+    "rich>=13.7",
+]
+
+[project.scripts]
+aii = "instrumentation.viewer.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+]
+
+[tool.uv]
+package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["substrate", "instrumentation", "agents", "scripts"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["substrate", "instrumentation", "agents", "tests"]
+python_files = ["test_*.py"]
+addopts = "-ra --strict-markers"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B", "SIM"]
+ignore = ["E501"]  # line length handled by formatter

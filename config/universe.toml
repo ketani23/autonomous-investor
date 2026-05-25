@@ -1,0 +1,79 @@
+# Phase 1 universe — 15 liquid ETFs. Adding/removing symbols requires:
+#   1. edit this file
+#   2. run scripts/backfill_prices.py --symbols NEW --years 5
+#   3. restart the daily run (config is re-read each invocation)
+
+[[symbol]]
+ticker = "SPY"
+sleeve = "equity_us_large"
+description = "S&P 500"
+
+[[symbol]]
+ticker = "IWM"
+sleeve = "equity_us_small"
+description = "Russell 2000"
+
+[[symbol]]
+ticker = "QQQ"
+sleeve = "equity_us_tech"
+description = "Nasdaq 100"
+
+[[symbol]]
+ticker = "EFA"
+sleeve = "equity_intl_dev"
+description = "MSCI EAFE"
+
+[[symbol]]
+ticker = "EEM"
+sleeve = "equity_em"
+description = "MSCI Emerging Markets"
+
+[[symbol]]
+ticker = "TLT"
+sleeve = "rates_long"
+description = "20+ Year Treasuries"
+
+[[symbol]]
+ticker = "IEF"
+sleeve = "rates_intermediate"
+description = "7-10 Year Treasuries"
+
+[[symbol]]
+ticker = "SHY"
+sleeve = "rates_short"
+description = "1-3 Year Treasuries"
+
+[[symbol]]
+ticker = "TIP"
+sleeve = "rates_tips"
+description = "TIPS — inflation-linked"
+
+[[symbol]]
+ticker = "LQD"
+sleeve = "credit_ig"
+description = "Investment-grade corporates"
+
+[[symbol]]
+ticker = "HYG"
+sleeve = "credit_hy"
+description = "High-yield corporates"
+
+[[symbol]]
+ticker = "DBC"
+sleeve = "commodity_broad"
+description = "Broad commodities"
+
+[[symbol]]
+ticker = "GLD"
+sleeve = "commodity_gold"
+description = "Gold"
+
+[[symbol]]
+ticker = "UUP"
+sleeve = "fx_usd"
+description = "US Dollar Bullish"
+
+[[symbol]]
+ticker = "VNQ"
+sleeve = "real_estate"
+description = "US REITs"

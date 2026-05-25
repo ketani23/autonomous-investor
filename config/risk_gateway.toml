@@ -1,0 +1,36 @@
+# Risk gateway limits. Version-controlled, hand-edited. The gateway hashes
+# this file's content and stores the hash with every evaluation, so any
+# config drift is detectable from the persisted records.
+
+[position]
+# Maximum weight per individual symbol (fraction of portfolio).
+max_position_weight = 0.40
+
+[exposure]
+# Gross = sum of |weights|. Net = sum of signed weights. Long-only Phase 1,
+# so both should be ~1.0 for a fully-invested book.
+max_gross_exposure = 1.05   # tiny tolerance for rounding
+max_net_exposure = 1.05
+min_net_exposure = 0.0       # no short books in Phase 1
+
+[loss]
+# Daily-loss circuit breaker. If the prior decision's portfolio dropped by
+# more than this fraction since execution, any new proposal is downgraded
+# to requires_approval.
+daily_loss_circuit_breaker = 0.05
+
+[frequency]
+# Order frequency caps. An "order" is a position change vs. current state.
+max_orders_per_day = 25
+max_orders_per_week = 60
+
+[tokens]
+# Cost-control: gateway reads token_usage from the trace and downgrades
+# to requires_approval if the agent spent more than this on one decision.
+max_tokens_per_decision = 500000
+
+[whitelist]
+# Allowed symbols. Must overlap with the universe.toml ticker set.
+# Source-of-truth pulled at gateway-evaluate time from universe.toml so the
+# whitelist stays in sync.
+source = "universe.toml"

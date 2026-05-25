@@ -1,0 +1,116 @@
+# FRED series for Phase 1. `vintage_tracked = true` means use ALFRED's
+# realtime_start / realtime_end to ingest every published revision as its
+# own bitemporal row. `false` means we treat the series as non-revising and
+# ingest the latest values with as_of = ingestion timestamp.
+#
+# Adding a series: append a block, run scripts/backfill_macro.py --series NEW.
+# Removing: delete the block. Historical rows stay so old decisions remain
+# explainable.
+
+[[series]]
+id = "FEDFUNDS"
+sleeve = "policy_rate"
+vintage_tracked = false
+description = "Effective Fed Funds Rate (monthly)"
+
+[[series]]
+id = "DGS3MO"
+sleeve = "treasury_yield"
+vintage_tracked = false
+description = "3-month Treasury constant maturity"
+
+[[series]]
+id = "DGS2"
+sleeve = "treasury_yield"
+vintage_tracked = false
+description = "2-year Treasury constant maturity"
+
+[[series]]
+id = "DGS10"
+sleeve = "treasury_yield"
+vintage_tracked = false
+description = "10-year Treasury constant maturity"
+
+[[series]]
+id = "DGS30"
+sleeve = "treasury_yield"
+vintage_tracked = false
+description = "30-year Treasury constant maturity"
+
+[[series]]
+id = "T10Y2Y"
+sleeve = "yield_curve"
+vintage_tracked = false
+description = "10y minus 2y Treasury spread"
+
+[[series]]
+id = "T10Y3M"
+sleeve = "yield_curve"
+vintage_tracked = false
+description = "10y minus 3m Treasury spread"
+
+[[series]]
+id = "CPIAUCSL"
+sleeve = "inflation"
+vintage_tracked = true
+description = "CPI All Urban Consumers (heavily revised)"
+
+[[series]]
+id = "PCEPI"
+sleeve = "inflation"
+vintage_tracked = true
+description = "PCE Price Index (Fed's preferred inflation gauge)"
+
+[[series]]
+id = "T5YIE"
+sleeve = "inflation_expectations"
+vintage_tracked = false
+description = "5-year breakeven inflation"
+
+[[series]]
+id = "DFII10"
+sleeve = "inflation_expectations"
+vintage_tracked = false
+description = "10-year TIPS yield (real yield proxy)"
+
+[[series]]
+id = "UNRATE"
+sleeve = "employment"
+vintage_tracked = true
+description = "Unemployment rate (revised on rebenchmarks)"
+
+[[series]]
+id = "PAYEMS"
+sleeve = "employment"
+vintage_tracked = true
+description = "Total nonfarm payrolls (heavily revised)"
+
+[[series]]
+id = "ICSA"
+sleeve = "employment"
+vintage_tracked = true
+description = "Initial jobless claims (weekly, frequently revised)"
+
+[[series]]
+id = "BAMLH0A0HYM2"
+sleeve = "credit_spread"
+vintage_tracked = false
+description = "BofA US High Yield OAS"
+
+[[series]]
+id = "BAMLC0A0CM"
+sleeve = "credit_spread"
+vintage_tracked = false
+description = "BofA US Corporate Master OAS (IG)"
+
+[[series]]
+id = "DTWEXBGS"
+sleeve = "fx_dollar"
+vintage_tracked = false
+description = "Trade-weighted US Dollar Index, broad"
+
+[[series]]
+id = "INDPRO"
+sleeve = "growth"
+vintage_tracked = true
+description = "Industrial production index (coincident growth)"

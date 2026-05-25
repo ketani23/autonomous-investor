@@ -1,0 +1,69 @@
+version: v0
+description: >
+  Minimal causal sketch of macro dynamics for Phase 1. The agent reads this
+  and is instructed (in its system prompt) to reference at least one edge
+  when hypothesizing. The DAG content the agent saw is snapshotted into the
+  trace so future replays are deterministic even if the file is later edited.
+  This is intentionally crude — Phase 3 expands it.
+
+nodes:
+  - id: fed_funds_rate
+    type: policy_lever
+    fred_series: FEDFUNDS
+    note: "Set by the FOMC."
+
+  - id: yield_curve_slope
+    type: observable
+    fred_series: T10Y2Y
+    note: "Steeper = expansion expected; inverted = recession risk."
+
+  - id: credit_conditions
+    type: observable
+    fred_series_proxies: [BAMLH0A0HYM2, BAMLC0A0CM]
+    note: "Wider spreads = tighter credit."
+
+  - id: real_growth
+    type: latent
+    proxies: [INDPRO, PAYEMS, ICSA]
+    note: "No single FRED series; reasoned about via several proxies."
+
+  - id: inflation
+    type: observable
+    fred_series: CPIAUCSL
+    note: "Headline CPI."
+
+  - id: equity_earnings
+    type: latent
+    proxies: [SPY_close]
+    note: "Crude price-as-proxy; substrate has no fundamentals in Phase 1."
+
+edges:
+  - from: fed_funds_rate
+    to: yield_curve_slope
+    relation: causal
+    sign: negative_short_end
+    note: "Hikes lift the short end mechanically, flattening or inverting the curve."
+
+  - from: fed_funds_rate
+    to: credit_conditions
+    relation: causal
+    sign: tightening
+    note: "Higher policy rate raises corporate funding costs, widens spreads."
+
+  - from: credit_conditions
+    to: real_growth
+    relation: causal
+    sign: tightening_dampens
+    note: "Tighter credit dampens investment and hiring with a lag."
+
+  - from: real_growth
+    to: equity_earnings
+    relation: causal
+    sign: positive
+    note: "Growth ultimately feeds top-line and margins."
+
+  - from: inflation
+    to: fed_funds_rate
+    relation: feedback
+    sign: positive
+    note: "Reaction function — Fed hikes in response to inflation surprises."
