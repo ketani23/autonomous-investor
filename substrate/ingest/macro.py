@@ -15,6 +15,7 @@ API docs: https://fred.stlouisfed.org/docs/api/fred/series_observations.html
 from __future__ import annotations
 
 import os
+import time
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Iterable
 
@@ -23,6 +24,52 @@ import requests
 from substrate.bitemporal import query as bt
 
 FRED_BASE = "https://api.stlouisfed.org/fred"
+
+# FRED rate limit is ~120 req/min. Keep us comfortably under it and survive
+# transient 429s with bounded exponential backoff.
+_MIN_INTERVAL_SEC = 0.6  # ~100 req/min cap
+_MAX_RETRIES = 6
+_BACKOFF_BASE_SEC = 1.5
+
+_last_request_at: float = 0.0
+
+
+def _throttle() -> None:
+    global _last_request_at
+    now = time.monotonic()
+    elapsed = now - _last_request_at
+    if elapsed < _MIN_INTERVAL_SEC:
+        time.sleep(_MIN_INTERVAL_SEC - elapsed)
+    _last_request_at = time.monotonic()
+
+
+def _request_with_retry(url: str, params: dict[str, Any]) -> requests.Response:
+    """Retry transient FRED failures: 429 rate limits, timeouts, connection errors.
+
+    Backoff is exponential. Permanent 4xx (other than 429) surfaces immediately.
+    """
+    last_exc: Exception | None = None
+    for attempt in range(_MAX_RETRIES):
+        _throttle()
+        try:
+            resp = requests.get(url, params=params, timeout=60)
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+            last_exc = e
+            wait = _BACKOFF_BASE_SEC * (2 ** attempt)
+            print(f"    transient network error ({type(e).__name__}); backing off {wait:.1f}s (attempt {attempt + 1})")
+            time.sleep(wait)
+            continue
+        if resp.status_code == 429 or resp.status_code >= 500:
+            wait = _BACKOFF_BASE_SEC * (2 ** attempt)
+            print(f"    {resp.status_code} from FRED; backing off {wait:.1f}s (attempt {attempt + 1})")
+            time.sleep(wait)
+            continue
+        resp.raise_for_status()
+        return resp
+    if last_exc is not None:
+        raise last_exc
+    resp.raise_for_status()  # re-raise last 429/5xx
+    return resp  # unreachable
 
 
 def _api_key() -> str:
@@ -55,8 +102,7 @@ def _get_observations(
     if realtime_end:
         params["realtime_end"] = realtime_end
 
-    resp = requests.get(f"{FRED_BASE}/series/observations", params=params, timeout=30)
-    resp.raise_for_status()
+    resp = _request_with_retry(f"{FRED_BASE}/series/observations", params)
     return resp.json().get("observations", [])
 
 
@@ -85,35 +131,55 @@ def ingest_latest(series_id: str, years: int = 5, as_of: datetime | None = None)
 # ---------------------------------------------------------------------------
 
 
+def _existing_vintage_dates(series_id: str) -> set[str]:
+    """Return ALFRED vintage_dates already ingested for this series, so a re-run
+    after a crash skips them. We key on vintage_date (the DB column populated for
+    ALFRED rows) rather than as_of, which is more reliable than reasoning about
+    timestamps."""
+    sql = (
+        "SELECT DISTINCT vintage_date FROM bitemporal_macro_observations "
+        "WHERE series_id = %s AND vintage_date IS NOT NULL"
+    )
+    with bt.connection() as conn, conn.cursor() as cur:
+        cur.execute(sql, (series_id,))
+        return {row[0].isoformat() for row in cur.fetchall()}
+
+
 def ingest_vintages(series_id: str, years: int = 5) -> int:
     """Capture each vintage (release) in the window. We discover release dates
-    via FRED's `/series/vintagedates` endpoint, then snapshot each one."""
+    via FRED's `/series/vintagedates` endpoint, then snapshot each one.
+
+    Resumable: vintages already present in the DB (keyed on vintage_date) are
+    skipped, so a re-run after a crash/timeout picks up where it left off."""
     end = datetime.now(tz=timezone.utc)
     start = end.replace(year=end.year - years)
 
     # 1. Discover release dates
-    resp = requests.get(
+    resp = _request_with_retry(
         f"{FRED_BASE}/series/vintagedates",
-        params={
+        {
             "series_id": series_id,
             "api_key": _api_key(),
             "file_type": "json",
             "realtime_start": start.strftime("%Y-%m-%d"),
             "realtime_end": end.strftime("%Y-%m-%d"),
         },
-        timeout=30,
     )
-    resp.raise_for_status()
     vintage_dates = resp.json().get("vintage_dates", [])
     if not vintage_dates:
         print(f"  {series_id}: no vintages in window")
         return 0
 
+    already_done = _existing_vintage_dates(series_id)
+    to_fetch = [vd for vd in vintage_dates if vd not in already_done]
+    if already_done:
+        print(f"  {series_id}: resuming — {len(already_done)} vintages already ingested, {len(to_fetch)} remaining of {len(vintage_dates)} total")
+
     total = 0
     # 2. For each release, snapshot what the series looked like at that point.
     # We use the realtime_start=realtime_end=release_date trick so we get
     # exactly the snapshot as it was on that release date.
-    for vd in vintage_dates:
+    for vd in to_fetch:
         obs = _get_observations(
             series_id,
             observation_start=start.strftime("%Y-%m-%d"),
