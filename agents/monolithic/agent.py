@@ -58,12 +58,15 @@ def _tool_full_name(short_name: str, server_name: str = "monolithic") -> str:
 def _build_options(model: str, model_pin: str) -> ClaudeAgentOptions:
     server = create_sdk_mcp_server(name="monolithic", version="0.1.0", tools=ALL_TOOLS)
     tool_names = [_tool_full_name(t.name) for t in ALL_TOOLS]
+    # We rely on `allowed_tools` to whitelist our MCP tools so the default
+    # permission mode auto-accepts them. `permission_mode="bypassPermissions"`
+    # maps to `--dangerously-skip-permissions` on the CLI, which newer Claude
+    # Code versions (2.1.119+) refuse when invoked as root — broken on the VM.
     return ClaudeAgentOptions(
         model=model,
         system_prompt=SYSTEM_PROMPT,
         mcp_servers={"monolithic": server},
         allowed_tools=tool_names,
-        permission_mode="bypassPermissions",
         max_turns=40,
     )
 
